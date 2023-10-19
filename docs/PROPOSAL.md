@@ -77,6 +77,10 @@ Option 1: Flask
 
 The user will start the backend, which will then initialize the SQLite database file. The user will then use the provided CLI to interact with the backend, using HTTP requests.
 
-The following diagram shows the high level flow
+The following diagram shows the high level relationship between the components
 
+![](assets/flow_overview.png)
 
+This is the more detailed flow of individual requests 
+
+![](assets/flow_detailed.png)
