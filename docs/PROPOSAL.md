@@ -13,7 +13,7 @@ Following is a list of technical requirements
 
 #### Considerations
 
-Option 1 will allow for initial easier development, but might cause problems later down the line if requirements are altered, or futher expansion of the system is needed. Option 2 allows for better flexibility in the future in case a GUI or alternative frontends are needed, and will increase isolation of the applications. 
+Option 1 will allow for initial easier development, but might cause problems later down the line if requirements are altered, or futher expansion of the system is needed. Option 2 allows for better flexibility in the future in case a GUI or alternative frontends are needed, and will increase isolation of the applications.
 
 #### Conclusion
 
@@ -37,7 +37,7 @@ Option 2: SQLite database
 
 ### Data Schemas
 
-We should store Habits as config objects. We should then use a separate structure called Tasks, that links back to the Habits, that we can mark as complete or not. This way we separate the Habits information, and the tracking of the individual events, and we reduce the amount of duplicate data. 
+We should store Habits as config objects. We should then use a separate structure called Tasks, that links back to the Habits, that we can mark as complete or not. This way we separate the Habits information, and the tracking of the individual events, and we reduce the amount of duplicate data.
 
 Every time the a Habit is hitting its selected interval, a new Task is created with a deadline. If completed, the task will be marked as such.
 
@@ -47,7 +47,7 @@ Every time the a Habit is hitting its selected interval, a new Task is created w
 
 1. CLI
 2. System GUI
-3. Web App 
+3. Web App
 
 #### Considerations
 
@@ -55,7 +55,7 @@ Options 2 and 3 requires an extra design step which may consume the majority of 
 
 #### Conclusion
 
-Option 1: CLI 
+Option 1: CLI
 
 ### Backend Web Framework
 
@@ -71,7 +71,7 @@ Option 3, to not use any framework, may cause unecesary creation of helper code.
 
 #### Conclusion
 
-Option 1: Flask 
+Option 1: Flask
 
 ## Flow and Interractions
 
@@ -81,6 +81,6 @@ The following diagram shows the high level relationship between the components
 
 ![](assets/flow_overview.png)
 
-This is the more detailed flow of individual requests 
+This is the more detailed flow of individual requests
 
 ![](assets/flow_detailed.png)
