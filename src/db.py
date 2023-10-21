@@ -5,10 +5,10 @@ from habit import Habit
 from task import Task
 
 
-con = sqlite3.connect("database.db")
+con = sqlite3.connect("database.db", check_same_thread=False)
 db = con.cursor()
 
-# Create table if not exists
+# Create tables if not exists
 db.execute(
     """CREATE TABLE IF NOT EXISTS habits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,7 +17,8 @@ db.execute(
     interval TEXT NOT NULL,
     lifetime TEXT NOT NULL,
     active INTEGER NOT NULL,
-    created_at TEXT NOT NULL,
+    start TEXT NOT NULL,
+    end TEXT NOT NULL
 )"""
 )
 db.execute(
@@ -31,31 +32,12 @@ db.execute(
 )"""
 )
 
-
-def add_filters_to_query(query: str, filters: dict[str, str]) -> tuple[str, list[str]]:
-    """Adds filters to a query"""
-
-    if len(filters) == 0:
-        return query
-
-    params = []
-    query += " WHERE"
-    for key, value in filters.items():
-        if value == None:
-            continue
-        query += f" {key} = ? AND"
-        params.append(value)
-
-    return query[:-4], params
-
-
 # Habits
 
 
 def habit_create(habit: Habit):
     """Creates a habit in the database"""
 
-    created_at = datetime.now()
     db.execute(
         """INSERT INTO habits (
             name, 
@@ -63,20 +45,21 @@ def habit_create(habit: Habit):
             interval, 
             lifetime,
             active, 
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?)""",
+            start,
+            end
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             habit.name,
             habit.description,
-            habit.interval,
-            habit.lifetime,
+            habit.interval.duration_str,
+            habit.lifetime.duration_str,
             habit.active,
-            created_at.isoformat(),
+            habit.start.isoformat(),
+            habit.end.isoformat(),
         ),
     )
     con.commit()
     habit.id = db.lastrowid
-    habit.created_at = created_at
 
 
 def habit_update(habit: Habit):
@@ -96,44 +79,29 @@ def habit_update(habit: Habit):
         (
             habit.name,
             habit.description,
-            habit.interval,
-            habit.lifetime,
+            habit.interval.duration_str,
+            habit.lifetime.duration_str,
             habit.active,
             habit.id,
         ),
     )
+
     con.commit()
 
-
-def habit_get(habit_id: int) -> Habit:
-    db.execute(
-        """SELECT * FROM habits WHERE id = ?""",
-        (habit_id,),
-    )
-    habit = db.fetchone()
-    if habit is None:
-        raise ValueError(f"Habit with id {habit_id} not found")
-    return Habit(
-        id=habit[0],
-        name=habit[1],
-        description=habit[2],
-        interval=habit[3],
-        lifetime=habit[4],
-        active=habit[5],
-        created_at=datetime.fromisoformat(habit[6]),
-    )
+    return habit_list(id=habit.id)[0]
 
 
 def habit_list(
-    name: str | None = None,
-    description: str | None = None,
-    interval: Duration | None = None,
-    lifetime: Duration | None = None,
-    active: bool | None = None,
+    id: int | None = None,
 ) -> list[Habit]:
-    query, params = add_filters_to_query(
-        "SELECT * FROM habits", {name, description, interval, lifetime, active}
-    )
+    """Lists habits with filtering support"""
+
+    if id is not None:
+        query = "SELECT * FROM habits WHERE id = ?"
+        params = (id,)
+    else:
+        query = "SELECT * FROM habits"
+        params = None
 
     db.execute(query, params)
 
@@ -146,8 +114,9 @@ def habit_list(
             description=habit[2],
             interval=habit[3],
             lifetime=habit[4],
-            active=habit[5],
-            created_at=datetime.fromisoformat(habit[6]),
+            active=bool(habit[5]),
+            start=habit[6],
+            end=habit[7],
         )
         for habit in habits
     ]
@@ -157,6 +126,8 @@ def habit_list(
 
 
 def task_create(task: Task):
+    """Creates a task in the database"""
+
     db.execute(
         """INSERT INTO tasks (
             habit_id, 
@@ -167,8 +138,8 @@ def task_create(task: Task):
         (
             task.habit_id,
             task.completed,
-            task.start,
-            task.end,
+            task.start.isoformat(),
+            task.end.isoformat(),
         ),
     )
     con.commit()
@@ -176,6 +147,8 @@ def task_create(task: Task):
 
 
 def task_complete(task_id: int):
+    """Marks a task as completed"""
+
     db.execute(
         """UPDATE tasks SET completed = 1 WHERE id = ?""",
         (task_id),
@@ -185,13 +158,15 @@ def task_complete(task_id: int):
 
 def task_list(
     habit_id: int | None = None,
-    completed: bool | None = None,
-    start: datetime | None = None,
-    end: datetime | None = None,
 ) -> list[Task]:
-    query, params = add_filters_to_query(
-        "SELECT * FROM tasks", {habit_id, completed, start, end}
-    )
+    """Lists tasks with filtering support"""
+
+    if habit_id is not None:
+        query = "SELECT * FROM tasks WHERE habit_id = ?"
+        params = (habit_id,)
+    else:
+        query = "SELECT * FROM tasks"
+        params = None
 
     db.execute(query, params)
 
@@ -201,9 +176,76 @@ def task_list(
         Task(
             id=task[0],
             habit_id=task[1],
-            completed=task[2],
+            completed=bool(task[2]),
             start=task[3],
             end=task[4],
         )
         for task in tasks
     ]
+
+
+if len(habit_list()) < 1:
+    """Seeds default habits if none exist"""
+    
+    now = datetime.now()
+    start = datetime(now.year, now.month, now.day, 8, 0, 0)
+    end = datetime(now.year+1, now.month+2, now.day+3, 22, 0, 0)
+    habit_create(
+        Habit(
+            name="Drink Water",
+            description="Drink 1 glass of water",
+            interval=Duration("4h"),
+            lifetime=Duration("5h"),
+            active=True,
+            start=start,
+            end=end,
+        )
+    )
+
+    habit_create(
+        Habit(
+            name="Exercise",
+            description="Exercise for 30 minutes",
+            interval=Duration("1d"),
+            lifetime=Duration("1d"),
+            active=True,
+            start=start,
+            end=end,
+        )
+    )
+
+    habit_create(
+        Habit(
+            name="Read",
+            description="Read for 30 minutes",
+            interval=Duration("1d"),
+            lifetime=Duration("12h"),
+            active=True,
+            start=start,
+            end=end,
+        )
+    )
+
+    habit_create(
+        Habit(
+            name="Meditate",
+            description="Meditate for 10 minutes",
+            interval=Duration("5h"),
+            lifetime=Duration("5h"),
+            active=True,
+            start=start,
+            end=end,
+        )
+    )
+
+    habit_create(
+        Habit(
+            name="Sleep",
+            description="Sleep for 8 hours",
+            interval=Duration("1d"),
+            lifetime=Duration("1d"),
+            active=True,
+            start=start,
+            end=end,
+        )
+    )
