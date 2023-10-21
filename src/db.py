@@ -97,13 +97,9 @@ def habit_list(
     """Lists habits with filtering support"""
 
     if id is not None:
-        query = "SELECT * FROM habits WHERE id = ?"
-        params = (id,)
+        db.execute("SELECT * FROM habits WHERE id = ?", (id))
     else:
-        query = "SELECT * FROM habits"
-        params = None
-
-    db.execute(query, params)
+        db.execute("SELECT * FROM habits")
 
     habits = db.fetchall()
 
@@ -186,16 +182,16 @@ def task_list(
 
 if len(habit_list()) < 1:
     """Seeds default habits if none exist"""
-    
+
     now = datetime.now()
     start = datetime(now.year, now.month, now.day, 8, 0, 0)
-    end = datetime(now.year+1, now.month+2, now.day+3, 22, 0, 0)
+    end = datetime(now.year + 1, now.month + 2, now.day + 3, 22, 0, 0)
     habit_create(
         Habit(
             name="Drink Water",
             description="Drink 1 glass of water",
-            interval=Duration("4h"),
-            lifetime=Duration("5h"),
+            interval=Duration("PT4H"),
+            lifetime=Duration("PT5H"),
             active=True,
             start=start,
             end=end,
@@ -206,8 +202,8 @@ if len(habit_list()) < 1:
         Habit(
             name="Exercise",
             description="Exercise for 30 minutes",
-            interval=Duration("1d"),
-            lifetime=Duration("1d"),
+            interval=Duration("P1D"),
+            lifetime=Duration("P1D"),
             active=True,
             start=start,
             end=end,
@@ -218,8 +214,8 @@ if len(habit_list()) < 1:
         Habit(
             name="Read",
             description="Read for 30 minutes",
-            interval=Duration("1d"),
-            lifetime=Duration("12h"),
+            interval=Duration("P1D"),
+            lifetime=Duration("PT12H"),
             active=True,
             start=start,
             end=end,
@@ -230,8 +226,8 @@ if len(habit_list()) < 1:
         Habit(
             name="Meditate",
             description="Meditate for 10 minutes",
-            interval=Duration("5h"),
-            lifetime=Duration("5h"),
+            interval=Duration("PT5H"),
+            lifetime=Duration("PT5H"),
             active=True,
             start=start,
             end=end,
@@ -242,8 +238,8 @@ if len(habit_list()) < 1:
         Habit(
             name="Sleep",
             description="Sleep for 8 hours",
-            interval=Duration("1d"),
-            lifetime=Duration("1d"),
+            interval=Duration("P1D"),
+            lifetime=Duration("P1D"),
             active=True,
             start=start,
             end=end,
