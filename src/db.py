@@ -32,6 +32,24 @@ db.execute(
 )"""
 )
 
+
+def add_filters_to_query(query: str, filters: dict[str, str]) -> tuple[str, list[str]]:
+    """Adds filters to a query"""
+
+    if len(filters) == 0:
+        return query
+
+    params = []
+    query += " WHERE"
+    for key, value in filters.items():
+        if value == None:
+            continue
+        query += f" {key} = ? AND"
+        params.append(value)
+
+    return query[:-4], params
+
+
 # Habits
 
 
@@ -61,6 +79,8 @@ def habit_create(habit: Habit):
     con.commit()
     habit.id = db.lastrowid
 
+    create_tasks_for_habit(habit)
+
 
 def habit_update(habit: Habit):
     """Updates a habit in the database"""
@@ -86,20 +106,44 @@ def habit_update(habit: Habit):
         ),
     )
 
+    db.execute(
+        """DELETE FROM tasks WHERE id IN (SELECT id FROM tasks WHERE habit_id = ? AND start > ?)""",
+        (
+            habit.id,
+            datetime.now().isoformat(),
+        ),
+    )
+
     con.commit()
+
+    create_tasks_for_habit(habit)
 
     return habit_list(id=habit.id)[0]
 
 
 def habit_list(
     id: int | None = None,
+    name: str | None = None,
+    description: str | None = None,
+    interval: Duration | None = None,
+    lifetime: Duration | None = None,
+    active: bool | None = None,
 ) -> list[Habit]:
     """Lists habits with filtering support"""
 
-    if id is not None:
-        db.execute("SELECT * FROM habits WHERE id = ?", (id))
-    else:
-        db.execute("SELECT * FROM habits")
+    query, params = add_filters_to_query(
+        "SELECT * FROM habits",
+        {
+            "id": id,
+            "name": name,
+            "description": description,
+            "interval": interval,
+            "lifetime": lifetime,
+            "active": active,
+        },
+    )
+
+    db.execute(query, params)
 
     habits = db.fetchall()
 
@@ -129,7 +173,7 @@ def task_create(task: Task):
             habit_id, 
             completed, 
             start, 
-            end,
+            end
         ) VALUES (?, ?, ?, ?)""",
         (
             task.habit_id,
@@ -147,22 +191,23 @@ def task_complete(task_id: int):
 
     db.execute(
         """UPDATE tasks SET completed = 1 WHERE id = ?""",
-        (task_id),
+        (task_id,),
     )
     con.commit()
 
 
 def task_list(
     habit_id: int | None = None,
+    completed: bool | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> list[Task]:
     """Lists tasks with filtering support"""
 
-    if habit_id is not None:
-        query = "SELECT * FROM tasks WHERE habit_id = ?"
-        params = (habit_id,)
-    else:
-        query = "SELECT * FROM tasks"
-        params = None
+    query, params = add_filters_to_query(
+        "SELECT * FROM tasks",
+        {"habit_id": habit_id, "completed": completed, "start": start, "end": end},
+    )
 
     db.execute(query, params)
 
@@ -178,6 +223,26 @@ def task_list(
         )
         for task in tasks
     ]
+
+
+def create_tasks_for_habit(habit: Habit, start_time: datetime = datetime.now()):
+    # itterate over the start to end using interval as the accumulator of the habit and create tasks
+    # for each interval
+    current = (
+        start_time
+        if start_time is not None and (start_time > habit.start)
+        else habit.start
+    )
+    while current < habit.end:
+        task_create(
+            Task(
+                habit_id=habit.id,
+                completed=False,
+                start=current,
+                end=current + habit.lifetime.duration,
+            )
+        )
+        current += habit.interval.duration
 
 
 if len(habit_list()) < 1:

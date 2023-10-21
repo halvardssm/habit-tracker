@@ -6,8 +6,19 @@ import requests
 url_base = "http://127.0.0.1"
 
 
-def create_url(port: int, endpoint: str):
-    return url_base + ":" + str(port) + endpoint
+def create_url(
+    port: int,
+    endpoint: str,
+    parameters: dict[str, str | int | bool | None] | None = None,
+):
+    url = url_base + ":" + str(port) + endpoint
+    if parameters is not None:
+        url += "?"
+        for key, value in parameters.items():
+            if value is not None:
+                url += key + "=" + str(value) + "&"
+        url = url[:-1]
+    return url
 
 
 def habit_create(args):
@@ -29,7 +40,48 @@ def habit_create(args):
 
 
 def habit_list(args):
-    r = requests.get(create_url(args.port, "/habits"))
+    r = requests.get(
+        create_url(
+            args.port,
+            "/habits",
+            parameters={
+                "id": str(args.id) if args.id is not None else None,
+                "name": args.name,
+                "description": args.description,
+                "interval": args.interval,
+                "lifetime": args.lifetime,
+                "active": args.active,
+            },
+        )
+    )
+    print(r.status_code)
+    print(r.text)
+
+
+def task_list(args):
+    r = requests.get(
+        create_url(
+            args.port,
+            "/tasks",
+            parameters={
+                "habit_id": args.habit_id,
+                "completed": args.completed,
+                "start": args.start,
+                "end": args.end,
+            },
+        )
+    )
+    print(r.status_code)
+    print(r.text)
+
+
+def task_complete(args):
+    r = requests.patch(
+        create_url(args.port, "/tasks"),
+        json={
+            "id": args.id,
+        },
+    )
     print(r.status_code)
     print(r.text)
 
@@ -85,10 +137,26 @@ parser_habit_create.add_argument(
 parser_habit_create.set_defaults(func=habit_create)
 
 parser_habit_list = subparsers.add_parser("habit:list", help="List habits")
-parser_habit_list.add_argument(
-    "--name", type=str, help="The name of the habit to create"
-)
+parser_habit_list.add_argument("--id", type=int, help="Filter by id")
+parser_habit_list.add_argument("--name", type=str, help="Filter by name")
+parser_habit_list.add_argument("--description", type=str, help="Filter by description")
+parser_habit_list.add_argument("--interval", type=str, help="Filter by interval")
+parser_habit_list.add_argument("--lifetime", type=str, help="Filter by lifetime")
+parser_habit_list.add_argument("--active", type=bool, help="Filter by active")
+parser_habit_list.add_argument("--start", type=str, help="Filter by start date")
+parser_habit_list.add_argument("--end", type=str, help="Filter by end date")
 parser_habit_list.set_defaults(func=habit_list)
+
+parser_habit_list = subparsers.add_parser("task:list", help="List tasks")
+parser_habit_list.add_argument("--habit_id", type=int, help="Filter by habit id")
+parser_habit_list.add_argument("--completed", type=bool, help="Filter by completed")
+parser_habit_list.add_argument("--start", type=str, help="Filter by start date")
+parser_habit_list.add_argument("--end", type=str, help="Filter by end date")
+parser_habit_list.set_defaults(func=task_list)
+
+parser_habit_list = subparsers.add_parser("task:complete", help="Complete a task")
+parser_habit_list.add_argument("--id", type=int, help="The id of the task to complete")
+parser_habit_list.set_defaults(func=task_complete)
 
 args = parser.parse_args()
 
