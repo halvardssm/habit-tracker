@@ -19,6 +19,14 @@
 3. Repeat 2 as needeed
 4. Once done, close the terminals
 
+### Tests
+
+To run the tests, do:
+
+```sh
+python -m unittest discover -s src
+```
+
 ### Formatting
 
 For formatting we use [black](https://pypi.org/project/black/).

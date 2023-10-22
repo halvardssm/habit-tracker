@@ -20,7 +20,7 @@ class TestDuration(unittest.TestCase):
         self.assertEqual(str(duration1.duration), "1:00:00")
 
     def test_class_duration_complex(self):
-        """Test the Duration class with simple parameters"""
+        """Test the Duration class with complex parameters"""
 
         start_time = datetime(2023, 10, 19, 13, 43, 12)
 

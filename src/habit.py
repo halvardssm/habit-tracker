@@ -67,6 +67,8 @@ class Habit:
             self.id = id
         elif id is not None:
             raise TypeError("id must be an int or None")
+        else:
+            self.id = None
 
     def to_dict(self):
         """Converts the class to a dictionary"""
