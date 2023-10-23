@@ -47,10 +47,11 @@ You can use `-h` to display help for the CLI.
 Here are the different sub commands:
 
 ```
-habit:create        Create a new habit
-habit:list          List habits
-task:list           List tasks
-task:complete       Complete a task
+habits:create       Create a new habit
+habits:list         List habits
+tasks:list          List tasks
+tasks:active        List tasks that are active and can be completed
+tasks:complete      Complete a task
 ```
 
 ### Habit Create
@@ -101,8 +102,10 @@ Options:
   --interval INTERVAL   Filter by interval
   --lifetime LIFETIME   Filter by lifetime
   --active ACTIVE       Filter by active
-  --start START         Filter by start date
-  --end END             Filter by end date
+  --start START         Filter by start date, can use < or > to filter, e.g.
+                        >2021-10-19T13:43:12
+  --end END             Filter by end date, can use < or > to filter, e.g.
+                        >2021-10-19T13:43:12
 ```
 
 ### Task List
@@ -122,6 +125,20 @@ Options:
                         Filter by completed
   --start START         Filter by start date
   --end END             Filter by end date
+```
+
+### Task Active
+
+Example:
+
+```
+python src/cli.py task:active
+```
+
+Options:
+
+```
+  -h, --help            show this help message and exit
 ```
 
 ### Task Complete
