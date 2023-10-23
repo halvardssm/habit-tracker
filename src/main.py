@@ -1,7 +1,7 @@
-from datetime import datetime
 from flask import Flask, jsonify, request
 import json
 from db import habit_create, habit_list, habit_update, task_complete, task_list
+from duration import Duration
 from habit import Habit
 import argparse
 from werkzeug.exceptions import HTTPException
@@ -65,12 +65,15 @@ def habit():
     else:
         """List habits with filtering support"""
 
-        id = request.args.get("id", None, int)
+        id = request.args.get("id", None, str)
         name = request.args.get("name", None, str)
         description = request.args.get("description", None, str)
-        interval = request.args.get("interval", None, datetime)
-        lifetime = request.args.get("lifetime", None, datetime)
-        active = request.args.get("active", None, bool)
+        interval = request.args.get("interval", None, str)
+        interval = Duration(interval) if interval is not None else None
+        lifetime = request.args.get("lifetime", None, str)
+        lifetime = Duration(lifetime) if lifetime is not None else None
+        active = request.args.get("active", None, str)
+        active = active.lower() == "true" if active is not None else None
         habits = habit_list(id, name, description, interval, lifetime, active)
         return jsonify([habit.to_dict() for habit in habits])
 
@@ -88,10 +91,11 @@ def tasks():
     else:
         """List tasks with filtering support"""
 
-        habit_id = request.args.get("habit_id", None, int)
-        completed = request.args.get("completed", None, bool)
-        start = request.args.get("start", None, datetime)
-        end = request.args.get("end", None, datetime)
+        habit_id = request.args.get("habit_id", None, str)
+        completed = request.args.get("completed", None, str)
+        completed = completed.lower() == "true" if completed is not None else None
+        start = request.args.get("start", None, str)
+        end = request.args.get("end", None, str)
         tasks = task_list(habit_id, completed, start, end)
         return jsonify([task.to_dict() for task in tasks])
 

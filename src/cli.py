@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime, timedelta
+import json
 import requests
 
 
@@ -76,7 +77,7 @@ def tasks_list(args):
 
 
 def tasks_active(args):
-    r = requests.get(
+    res_tasks = requests.get(
         create_url(
             args.port,
             "/tasks",
@@ -87,8 +88,32 @@ def tasks_active(args):
             },
         )
     )
-    print(r.status_code)
-    print(r.text)
+    tasks = res_tasks.json()
+
+    if len(tasks) < 1:
+        print("No active tasks")
+        return
+
+    habit_ids = [element["habit_id"] for element in tasks]
+    res_habits = requests.get(
+        create_url(
+            args.port,
+            "/habits",
+            parameters={
+                "id": "*in(" + ",".join([str(id) for id in habit_ids]) + ")",
+            },
+        )
+    )
+    habits = res_habits.json()
+
+    def map_habit_to_task(task: dict):
+        habit = [x for x in habits if x["id"] == task["habit_id"]][0]
+        task["name"] = habit["name"]
+        task["description"] = habit["description"]
+        return task
+
+    formatted_tasks = list(map(map_habit_to_task, tasks))
+    print(json.dumps(formatted_tasks, indent=2))
 
 
 def tasks_complete(args):
