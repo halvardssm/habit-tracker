@@ -53,7 +53,7 @@ def add_filters_to_query(query: str, filters: dict[str, str]) -> tuple[str, list
             query += f" {key} > ? AND"
             params.append(value[1:])
             continue
-        
+
         query += f" {key} = ? AND"
         params.append(value)
 

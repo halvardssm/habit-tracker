@@ -1,6 +1,5 @@
 import unittest
-from datetime import datetime, timedelta
-from duration import Duration
+from datetime import datetime
 from task import Task
 
 

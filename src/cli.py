@@ -74,6 +74,7 @@ def tasks_list(args):
     print(r.status_code)
     print(r.text)
 
+
 def tasks_active(args):
     r = requests.get(
         create_url(
@@ -81,8 +82,8 @@ def tasks_active(args):
             "/tasks",
             parameters={
                 "completed": False,
-                "start": '<'+datetime.now().isoformat(),
-                "end": '>'+datetime.now().isoformat(),
+                "start": "<" + datetime.now().isoformat(),
+                "end": ">" + datetime.now().isoformat(),
             },
         )
     )
@@ -158,8 +159,16 @@ parser_habit_list.add_argument("--description", type=str, help="Filter by descri
 parser_habit_list.add_argument("--interval", type=str, help="Filter by interval")
 parser_habit_list.add_argument("--lifetime", type=str, help="Filter by lifetime")
 parser_habit_list.add_argument("--active", type=bool, help="Filter by active")
-parser_habit_list.add_argument("--start", type=str, help="Filter by start date, can use < or > to filter, e.g. >2021-10-19T13:43:12")
-parser_habit_list.add_argument("--end", type=str, help="Filter by end date, can use < or > to filter, e.g. >2021-10-19T13:43:12")
+parser_habit_list.add_argument(
+    "--start",
+    type=str,
+    help="Filter by start date, can use < or > to filter, e.g. >2021-10-19T13:43:12",
+)
+parser_habit_list.add_argument(
+    "--end",
+    type=str,
+    help="Filter by end date, can use < or > to filter, e.g. >2021-10-19T13:43:12",
+)
 parser_habit_list.set_defaults(func=habits_list)
 
 parser_habit_list = subparsers.add_parser("tasks:list", help="List tasks")
@@ -169,7 +178,9 @@ parser_habit_list.add_argument("--start", type=str, help="Filter by start date")
 parser_habit_list.add_argument("--end", type=str, help="Filter by end date")
 parser_habit_list.set_defaults(func=tasks_list)
 
-parser_habit_list = subparsers.add_parser("tasks:active", help="List tasks that are active and can be completed")
+parser_habit_list = subparsers.add_parser(
+    "tasks:active", help="List tasks that are active and can be completed"
+)
 parser_habit_list.set_defaults(func=tasks_active)
 
 parser_habit_list = subparsers.add_parser("tasks:complete", help="Complete a task")
