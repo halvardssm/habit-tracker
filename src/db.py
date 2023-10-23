@@ -44,6 +44,16 @@ def add_filters_to_query(query: str, filters: dict[str, str]) -> tuple[str, list
     for key, value in filters.items():
         if value == None:
             continue
+        # If value starts with '<' or '>', add the value as a parameter and add the operator to the query
+        if value.startswith("<"):
+            query += f" {key} < ? AND"
+            params.append(value[1:])
+            continue
+        if value.startswith(">"):
+            query += f" {key} > ? AND"
+            params.append(value[1:])
+            continue
+        
         query += f" {key} = ? AND"
         params.append(value)
 

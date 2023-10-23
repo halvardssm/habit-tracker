@@ -21,7 +21,7 @@ def create_url(
     return url
 
 
-def habit_create(args):
+def habits_create(args):
     print(args)
     r = requests.post(
         create_url(args.port, "/habits"),
@@ -39,7 +39,7 @@ def habit_create(args):
     print(r.text)
 
 
-def habit_list(args):
+def habits_list(args):
     r = requests.get(
         create_url(
             args.port,
@@ -58,7 +58,7 @@ def habit_list(args):
     print(r.text)
 
 
-def task_list(args):
+def tasks_list(args):
     r = requests.get(
         create_url(
             args.port,
@@ -74,8 +74,23 @@ def task_list(args):
     print(r.status_code)
     print(r.text)
 
+def tasks_active(args):
+    r = requests.get(
+        create_url(
+            args.port,
+            "/tasks",
+            parameters={
+                "completed": False,
+                "start": '<'+datetime.now().isoformat(),
+                "end": '>'+datetime.now().isoformat(),
+            },
+        )
+    )
+    print(r.status_code)
+    print(r.text)
 
-def task_complete(args):
+
+def tasks_complete(args):
     r = requests.patch(
         create_url(args.port, "/tasks"),
         json={
@@ -94,7 +109,7 @@ subparsers = parser.add_subparsers(
     title="subcommands", description="available sub-commands"
 )
 
-parser_habit_create = subparsers.add_parser("habit:create", help="Create a new habit")
+parser_habit_create = subparsers.add_parser("habits:create", help="Create a new habit")
 parser_habit_create.add_argument(
     "--name", type=str, help="The name of the habit to create", required=True
 )
@@ -134,29 +149,32 @@ parser_habit_create.add_argument(
     help="The end of the habit to create, iso format, default 1 year from now",
     default=(datetime.now() + timedelta(days=365)).isoformat(),
 )
-parser_habit_create.set_defaults(func=habit_create)
+parser_habit_create.set_defaults(func=habits_create)
 
-parser_habit_list = subparsers.add_parser("habit:list", help="List habits")
+parser_habit_list = subparsers.add_parser("habits:list", help="List habits")
 parser_habit_list.add_argument("--id", type=int, help="Filter by id")
 parser_habit_list.add_argument("--name", type=str, help="Filter by name")
 parser_habit_list.add_argument("--description", type=str, help="Filter by description")
 parser_habit_list.add_argument("--interval", type=str, help="Filter by interval")
 parser_habit_list.add_argument("--lifetime", type=str, help="Filter by lifetime")
 parser_habit_list.add_argument("--active", type=bool, help="Filter by active")
-parser_habit_list.add_argument("--start", type=str, help="Filter by start date")
-parser_habit_list.add_argument("--end", type=str, help="Filter by end date")
-parser_habit_list.set_defaults(func=habit_list)
+parser_habit_list.add_argument("--start", type=str, help="Filter by start date, can use < or > to filter, e.g. >2021-10-19T13:43:12")
+parser_habit_list.add_argument("--end", type=str, help="Filter by end date, can use < or > to filter, e.g. >2021-10-19T13:43:12")
+parser_habit_list.set_defaults(func=habits_list)
 
-parser_habit_list = subparsers.add_parser("task:list", help="List tasks")
+parser_habit_list = subparsers.add_parser("tasks:list", help="List tasks")
 parser_habit_list.add_argument("--habit_id", type=int, help="Filter by habit id")
 parser_habit_list.add_argument("--completed", type=bool, help="Filter by completed")
 parser_habit_list.add_argument("--start", type=str, help="Filter by start date")
 parser_habit_list.add_argument("--end", type=str, help="Filter by end date")
-parser_habit_list.set_defaults(func=task_list)
+parser_habit_list.set_defaults(func=tasks_list)
 
-parser_habit_list = subparsers.add_parser("task:complete", help="Complete a task")
+parser_habit_list = subparsers.add_parser("tasks:active", help="List tasks that are active and can be completed")
+parser_habit_list.set_defaults(func=tasks_active)
+
+parser_habit_list = subparsers.add_parser("tasks:complete", help="Complete a task")
 parser_habit_list.add_argument("--id", type=int, help="The id of the task to complete")
-parser_habit_list.set_defaults(func=task_complete)
+parser_habit_list.set_defaults(func=tasks_complete)
 
 args = parser.parse_args()
 
