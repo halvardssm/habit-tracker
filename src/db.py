@@ -25,10 +25,11 @@ db.execute(
     """CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     habit_id INTEGER NOT NULL,
+    habit_order INTEGER NOT NULL,
     completed INTEGER NOT NULL,
     start TEXT NOT NULL,
     end TEXT NOT NULL,
-    FOREIGN KEY(habit_id) REFERENCES habits(id)
+    FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
 )"""
 )
 
@@ -133,7 +134,13 @@ def habit_update(habit: Habit):
 
     con.commit()
 
-    create_tasks_for_habit(habit)
+    db.execute("""SELECT habit_order FROM tasks ORDER BY habit_order DESC LIMIT 1""")
+
+    habit_order_no = db.fetchone()[0]
+
+    print(habit_order_no)
+
+    create_tasks_for_habit(habit, habit_order_no)
 
     return habit_list(id=habit.id)[0]
 
@@ -154,8 +161,8 @@ def habit_list(
             "id": id,
             "name": name,
             "description": description,
-            "interval": interval,
-            "lifetime": lifetime,
+            "interval": interval.duration_str if interval is not None else None,
+            "lifetime": lifetime.duration_str if lifetime is not None else None,
             "active": active,
         },
     )
@@ -179,6 +186,20 @@ def habit_list(
     ]
 
 
+def habit_delete(ids: tuple[int]):
+    """Deletes a Habit from the database"""
+
+    query = "DELETE FROM habits WHERE id in (" + ",".join(["?" for _ in id]) + ")"
+
+    db.execute(
+        query,
+        ids,
+    )
+    con.commit()
+
+    task_delete_by_habit(ids)
+
+
 # Tasks
 
 
@@ -188,12 +209,14 @@ def task_create(task: Task):
     db.execute(
         """INSERT INTO tasks (
             habit_id, 
+            habit_order,
             completed, 
             start, 
             end
-        ) VALUES (?, ?, ?, ?)""",
+        ) VALUES (?, ?, ?, ?, ?)""",
         (
             task.habit_id,
+            task.habit_order,
             task.completed,
             task.start.isoformat(),
             task.end.isoformat(),
@@ -234,32 +257,55 @@ def task_list(
         Task(
             id=task[0],
             habit_id=task[1],
-            completed=bool(task[2]),
-            start=task[3],
-            end=task[4],
+            habit_order=task[2],
+            completed=bool(task[3]),
+            start=task[4],
+            end=task[5],
         )
         for task in tasks
     ]
 
 
-def create_tasks_for_habit(habit: Habit, start_time: datetime = datetime.now()):
-    # itterate over the start to end using interval as the accumulator of the habit and create tasks
-    # for each interval
+def task_delete_by_habit(habit_ids: tuple[int]):
+    """Deletes Tasks from the database"""
+
+    query = (
+        "DELETE FROM tasks WHERE habit_id in ("
+        + ",".join(["?" for _ in habit_ids])
+        + ")"
+    )
+
+    db.execute(
+        query,
+        habit_ids,
+    )
+
+
+def create_tasks_for_habit(
+    habit: Habit, habit_order_no: int = 0, start_time: datetime = datetime.now()
+):
+    """Creates tasks for a habit. If start_time is provided, tasks will be created from that time onwards.
+    Otherwise, tasks will be created from the habit's start time onwards.
+    If habit_order_no is provided, tasks will be created from that order onwards.
+    """
     current = (
         start_time
         if start_time is not None and (start_time > habit.start)
         else habit.start
     )
+    current_order = habit_order_no + 1
     while current < habit.end:
         task_create(
             Task(
                 habit_id=habit.id,
+                habit_order=current_order,
                 completed=False,
                 start=current,
                 end=current + habit.lifetime.duration,
             )
         )
         current += habit.interval.duration
+        current_order += 1
 
 
 if len(habit_list()) < 1:

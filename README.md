@@ -47,11 +47,13 @@ You can use `-h` to display help for the CLI.
 Here are the different sub commands:
 
 ```
-habits:create       Create a new habit
-habits:list         List habits
-tasks:list          List tasks
-tasks:active        List tasks that are active and can be completed
-tasks:complete      Complete a task
+    habits:create       Create a new habit
+    habits:list         List habits
+    tasks:list          List tasks
+    tasks:active        List tasks that are active and can be completed
+    tasks:complete      Complete a task
+    analytics           Query analytics. You can already get a lot of information using the list commands, but this is a
+                        central analytics helper.
 ```
 
 ### Habit Create
@@ -152,4 +154,46 @@ Options:
 ```
   -h, --help  show this help message and exit
   --id ID     The id of the task to complete
+```
+
+## Analytics
+
+In the case of analytics, there is an endpoint that will wrap around the existing commands and also provides some more.
+
+### Examples
+
+#### List current Habits
+
+```sh
+python src/cli.py analytics list_current_habits
+```
+
+#### List current Habits and filter by interval
+
+```sh
+python src/cli.py analytics list_current_habits --interval P1D
+```
+
+#### List longest streak
+
+```sh
+python src/cli.py analytics list_longest_streaks
+```
+
+#### List longest streak and filter by habit id
+
+```sh
+python src/cli.py analytics list_longest_streaks --habit_id 1
+```
+
+#### Get longest streak
+
+```sh
+python src/cli.py analytics get_longest_streak
+```
+
+#### Get longest streak and filter by habit id
+
+```sh
+python src/cli.py analytics get_longest_streak --habit_id 1
 ```

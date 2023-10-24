@@ -6,6 +6,7 @@ class Task:
 
     id: int | None
     habit_id: int
+    habit_order: int
     start: datetime
     end: datetime
     completed: bool
@@ -13,6 +14,7 @@ class Task:
     def __init__(
         self,
         habit_id: int,
+        habit_order: int,
         start: datetime | str,
         end: datetime | str,
         completed: bool = False,
@@ -21,8 +23,12 @@ class Task:
         """Initializes the class with validation"""
 
         if not isinstance(habit_id, int):
-            raise TypeError("name must be a int")
+            raise TypeError("habit_id must be a int")
         self.habit_id = habit_id
+
+        if not isinstance(habit_order, int):
+            raise TypeError("habit_order must be a int")
+        self.habit_order = habit_order
 
         if isinstance(start, datetime):
             self.start = start
@@ -55,6 +61,7 @@ class Task:
         return {
             "id": self.id,
             "habit_id": self.habit_id,
+            "habit_order": self.habit_order,
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "completed": self.completed,
