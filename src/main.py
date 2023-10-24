@@ -7,13 +7,13 @@ from db import (
     habit_update,
     task_complete,
     task_list,
-    db,
 )
 from duration import Duration
 from habit import Habit
 import argparse
 from werkzeug.exceptions import HTTPException
 import traceback
+from utils import not_none
 
 app = Flask(__name__)
 
@@ -77,17 +77,25 @@ def route_habits_update():
     """Update an existing habit"""
 
     data = json.loads(request.data)
-    habit = Habit(
-        id=data.get("id"),
-        name=data.get("name"),
-        description=data.get("description"),
-        interval=data.get("interval"),
-        lifetime=data.get("lifetime"),
-        active=data.get("active"),
-        start=data.get("start"),
-        end=data.get("end"),
+    id = data.get("id")
+    if id is None:
+        raise ValueError("Habit id is None")
+    existing_habits = habit_list(id=id)
+    if len(existing_habits) < 1:
+        raise ValueError(f"Habit with id {id} does not exist")
+    existing_habit = existing_habits[0]
+
+    new_habit = Habit(
+        id=not_none(data.get("id"), existing_habit.id),
+        name=not_none(data.get("name"), existing_habit.name),
+        description=not_none(data.get("description"), existing_habit.description),
+        interval=not_none(data.get("interval"), existing_habit.interval),
+        lifetime=not_none(data.get("lifetime"), existing_habit.lifetime),
+        active=not_none(data.get("active"), existing_habit.active),
+        start=not_none(data.get("start"), existing_habit.start),
+        end=not_none(data.get("end"), existing_habit.end),
     )
-    updated_habit = habit_update(habit)
+    updated_habit = habit_update(new_habit)
     return jsonify(updated_habit.to_dict())
 
 
@@ -116,11 +124,11 @@ def route_tasks_list():
 def route_tasks_complete():
     """Marks a task as completed"""
 
-    data = json.loads(request.data)
-    if data.get("id") is None:
+    id = request.args.get("id", None, int)
+    if id is None:
         raise ValueError("Task id is None")
-    task_complete(data.get("id"))
-    return "ok"
+    task_complete(id)
+    return jsonify({"id": id})
 
 
 # CLI
@@ -132,4 +140,5 @@ args = parser.parse_args()
 
 # Run the server
 
-app.run(debug=True, use_reloader=False, port=args.port)
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=False, port=args.port)

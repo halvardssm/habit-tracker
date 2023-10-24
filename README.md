@@ -12,6 +12,16 @@
 1. Run `source env/bin/activate` to start the virtual environment
 2. Run `pip install -r requirements.txt` to install the dependencies
 
+### Seed example data
+
+1. Run `python src/db_seed.py`
+
+This will seed the database with 5 habits and their tasks with past tasks completed.
+
+### Remove data
+
+Delete the file called `database.db`.
+
 ### Starting the app
 
 1. In one terminal window (don't forget to set up virtual env), run `python3 src/main.py`, dont close this terminal and simply leave it in the background. You can provide the argument `--port` to override the port (default 5000).
@@ -21,11 +31,10 @@
 
 ### Tests
 
-To run the tests, do:
+To run the tests:
 
-```sh
-python -m unittest discover -s src
-```
+1. Start the backend `python3 src/main.py`
+2. In a new terminal window, run `python -m unittest discover -s src`
 
 ### Formatting
 
@@ -48,7 +57,9 @@ Here are the different sub commands:
 
 ```
     habits:create       Create a new habit
-    habits:list         List habits
+    habits:list         List habits with filters
+    habits:update       Update a habit
+    habits:delete       Delete a habit
     tasks:list          List tasks
     tasks:active        List tasks that are active and can be completed
     tasks:complete      Complete a task
@@ -56,104 +67,48 @@ Here are the different sub commands:
                         central analytics helper.
 ```
 
-### Habit Create
+### Examples
 
-Example:
-
-```
-python src/cli.py habit:create --name test --description "test description" --interval P1D --lifetime P2D
-```
-
-Options:
+#### Habit Create
 
 ```
-  -h, --help            show this help message and exit
-  --name NAME           The name of the habit to create
-  --description DESCRIPTION
-                        The description of the habit to create
-  --interval INTERVAL   The interval of the habit to create, must follow
-                        ISO8601 duration standard
-                        (P[n]Y[n]M[n]DT[n]H[n]M[n]S), e.g. P1Y
-  --lifetime LIFETIME   The lifetime of the habit to create, must follow
-                        ISO8601 duration standard
-                        (P[n]Y[n]M[n]DT[n]H[n]M[n]S), e.g. PT1H
-  --active ACTIVE       The active of the habit to create, boolean, default
-                        false
-  --start START         The start of the habit to create, iso format, default
-                        now
-  --end END             The end of the habit to create, iso format, default 1
-                        year from now
+python src/cli.py habits:create --name test --description "test description" --interval P1D --lifetime P2D --active true --start 2023-10-24T08:00:00 --end 2024-12-27T22:00:00
 ```
 
-### Habit List
-
-Example:
+#### Habit List
 
 ```
-python src/cli.py habit:list --id 2
+python src/cli.py habits:list --id *in(2,3) --name test --description test --interval P1D --lifetime P2D --active true --start <2023-10-24T08:00:00 --end >2024-12-27T22:00:00
 ```
 
-Options:
+#### Habit Update
 
 ```
-  -h, --help            show this help message and exit
-  --id ID               Filter by id
-  --name NAME           Filter by name
-  --description DESCRIPTION
-                        Filter by description
-  --interval INTERVAL   Filter by interval
-  --lifetime LIFETIME   Filter by lifetime
-  --active ACTIVE       Filter by active
-  --start START         Filter by start date, can use < or > to filter, e.g.
-                        >2021-10-19T13:43:12
-  --end END             Filter by end date, can use < or > to filter, e.g.
-                        >2021-10-19T13:43:12
+python src/cli.py habits:update --id 1 --name test --description "test description" --interval P1D --lifetime P2D --active true --start 2023-10-24T08:00:00 --end 2024-12-27T22:00:00
 ```
 
-### Task List
-
-Example:
+#### Habit Delete
 
 ```
-python src/cli.py task:list --habit_id 2
+python src/cli.py habits:delete --id 1
 ```
 
-Options:
+#### Task List
 
 ```
-  -h, --help            show this help message and exit
-  --habit_id HABIT_ID   Filter by habit id
-  --completed COMPLETED
-                        Filter by completed
-  --start START         Filter by start date
-  --end END             Filter by end date
+python src/cli.py tasks:list --habit_id 2 --completed true --start 2023-10-24T08:00:00 --end 2024-12-27T22:00:00
 ```
 
-### Task Active
-
-Example:
+#### Task Active
 
 ```
-python src/cli.py task:active
+python src/cli.py tasks:active
 ```
 
-Options:
+#### Task Complete
 
 ```
-  -h, --help            show this help message and exit
-```
-
-### Task Complete
-
-```
-python src/cli.py task:complete --id 336
-```
-
-Options:
-
-```
-  -h, --help  show this help message and exit
-  --id ID     The id of the task to complete
+python src/cli.py tasks:complete --id 336
 ```
 
 ## Analytics
@@ -174,16 +129,22 @@ python src/cli.py analytics list_current_habits
 python src/cli.py analytics list_current_habits --interval P1D
 ```
 
-#### List longest streak
+#### List longest streaks
 
 ```sh
-python src/cli.py analytics list_longest_streaks
+python src/cli.py analytics list_longest_streaks 
 ```
 
-#### List longest streak and filter by habit id
+#### List longest streaks and filter by habit id
 
 ```sh
 python src/cli.py analytics list_longest_streaks --habit_id 1
+```
+
+#### List longest streaks greater than 5
+
+```sh
+python src/cli.py analytics list_longest_streaks --streak >5
 ```
 
 #### Get longest streak

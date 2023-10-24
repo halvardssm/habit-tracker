@@ -9,6 +9,7 @@ class TestTask(unittest.TestCase):
 
         task1 = Task(
             habit_id=1,
+            habit_order=1,
             start="2023-10-19T13:43:12",
             end="2023-10-20T13:43:12",
             completed=False,
@@ -19,6 +20,7 @@ class TestTask(unittest.TestCase):
             {
                 "id": 1,
                 "habit_id": 1,
+                "habit_order": 1,
                 "start": "2023-10-19T13:43:12",
                 "end": "2023-10-20T13:43:12",
                 "completed": False,
@@ -27,6 +29,7 @@ class TestTask(unittest.TestCase):
 
         task2 = Task(
             habit_id=1,
+            habit_order=1,
             start=datetime(2023, 10, 19, 13, 43, 12),
             end=datetime(2023, 10, 20, 13, 43, 12),
         )
@@ -35,6 +38,7 @@ class TestTask(unittest.TestCase):
             {
                 "id": None,
                 "habit_id": 1,
+                "habit_order": 1,
                 "start": "2023-10-19T13:43:12",
                 "end": "2023-10-20T13:43:12",
                 "completed": False,

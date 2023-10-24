@@ -71,7 +71,7 @@ def add_filters_to_query(query: str, filters: dict[str, str]) -> tuple[str, list
 # Habits
 
 
-def habit_create(habit: Habit):
+def habit_create(habit: Habit, start_time: datetime | None = None):
     """Creates a habit in the database"""
 
     db.execute(
@@ -97,7 +97,7 @@ def habit_create(habit: Habit):
     con.commit()
     habit.id = db.lastrowid
 
-    create_tasks_for_habit(habit)
+    create_tasks_for_habit(habit, start_time=start_time)
 
 
 def habit_update(habit: Habit):
@@ -137,8 +137,6 @@ def habit_update(habit: Habit):
     db.execute("""SELECT habit_order FROM tasks ORDER BY habit_order DESC LIMIT 1""")
 
     habit_order_no = db.fetchone()[0]
-
-    print(habit_order_no)
 
     create_tasks_for_habit(habit, habit_order_no)
 
@@ -189,7 +187,7 @@ def habit_list(
 def habit_delete(ids: tuple[int]):
     """Deletes a Habit from the database"""
 
-    query = "DELETE FROM habits WHERE id in (" + ",".join(["?" for _ in id]) + ")"
+    query = "DELETE FROM habits WHERE id in (" + ",".join(["?" for _ in ids]) + ")"
 
     db.execute(
         query,
@@ -280,9 +278,11 @@ def task_delete_by_habit(habit_ids: tuple[int]):
         habit_ids,
     )
 
+    con.commit()
+
 
 def create_tasks_for_habit(
-    habit: Habit, habit_order_no: int = 0, start_time: datetime = datetime.now()
+    habit: Habit, habit_order_no: int = 0, start_time: datetime | None = None
 ):
     """Creates tasks for a habit. If start_time is provided, tasks will be created from that time onwards.
     Otherwise, tasks will be created from the habit's start time onwards.
@@ -290,7 +290,7 @@ def create_tasks_for_habit(
     """
     current = (
         start_time
-        if start_time is not None and (start_time > habit.start)
+        if start_time is not None and (start_time >= habit.start)
         else habit.start
     )
     current_order = habit_order_no + 1
@@ -306,70 +306,3 @@ def create_tasks_for_habit(
         )
         current += habit.interval.duration
         current_order += 1
-
-
-if len(habit_list()) < 1:
-    """Seeds default habits if none exist"""
-
-    now = datetime.now()
-    start = datetime(now.year, now.month, now.day, 8, 0, 0)
-    end = datetime(now.year + 1, now.month + 2, now.day + 3, 22, 0, 0)
-    habit_create(
-        Habit(
-            name="Drink Water",
-            description="Drink 1 glass of water",
-            interval=Duration("PT4H"),
-            lifetime=Duration("PT5H"),
-            active=True,
-            start=start,
-            end=end,
-        )
-    )
-
-    habit_create(
-        Habit(
-            name="Exercise",
-            description="Exercise for 30 minutes",
-            interval=Duration("P1D"),
-            lifetime=Duration("P1D"),
-            active=True,
-            start=start,
-            end=end,
-        )
-    )
-
-    habit_create(
-        Habit(
-            name="Read",
-            description="Read for 30 minutes",
-            interval=Duration("P1D"),
-            lifetime=Duration("PT12H"),
-            active=True,
-            start=start,
-            end=end,
-        )
-    )
-
-    habit_create(
-        Habit(
-            name="Meditate",
-            description="Meditate for 10 minutes",
-            interval=Duration("PT5H"),
-            lifetime=Duration("PT5H"),
-            active=True,
-            start=start,
-            end=end,
-        )
-    )
-
-    habit_create(
-        Habit(
-            name="Sleep",
-            description="Sleep for 8 hours",
-            interval=Duration("P1D"),
-            lifetime=Duration("P1D"),
-            active=True,
-            start=start,
-            end=end,
-        )
-    )

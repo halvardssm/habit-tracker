@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime, timedelta
+import json
 import requests
 from types import SimpleNamespace
 from tabulate import tabulate
@@ -26,9 +27,12 @@ def create_url(
     return url
 
 
-def print_tabular(data):
+def output(data, format="table"):
     """Helper function for printing the given data in a tabular format."""
-    print(tabulate(data, headers="keys"))
+    if format == "table":
+        print(tabulate(data, headers="keys"))
+    else:
+        print(json.dumps(data))
 
 
 def get_streaks_from_tasks(input_list):
@@ -66,6 +70,8 @@ def get_streaks_from_tasks(input_list):
     for streak in streaks:
         del streak["last_habit_order"]
 
+    streaks.sort(key=lambda x: x["streak"], reverse=True)
+
     return streaks
 
 
@@ -93,6 +99,7 @@ def req_habits_update(args):
     return requests.put(
         create_url(args.port, "/habits"),
         json={
+            "id": args.id,
             "name": args.name,
             "description": args.description,
             "interval": args.interval,
@@ -122,6 +129,13 @@ def req_habits_list(args):
     ).json()
 
 
+def req_habits_delete(args):
+    """HTTP request to update a habit."""
+    return requests.delete(
+        create_url(args.port, "/habits", parameters={"id": args.id}),
+    ).json()
+
+
 def req_tasks_list(args):
     """HTTP request to list tasks."""
     return requests.get(
@@ -141,10 +155,7 @@ def req_tasks_list(args):
 def req_tasks_complete(args):
     """HTTP request to complete a task."""
     return requests.patch(
-        create_url(args.port, "/tasks"),
-        json={
-            "id": args.id,
-        },
+        create_url(args.port, "/tasks", parameters={"id": args.id}),
     ).json()
 
 
@@ -163,10 +174,10 @@ def tasks_active(args):
         )
     )
 
-    return map_habits_to_tasks(tasks)
+    return map_habits_to_tasks(args, tasks)
 
 
-def map_habits_to_tasks(tasks):
+def map_habits_to_tasks(args, tasks):
     """Map habits to tasks."""
 
     if len(tasks) < 1:
@@ -202,7 +213,23 @@ def list_task_streaks(args):
         )
     )
 
-    return get_streaks_from_tasks(tasks)
+    streaks = get_streaks_from_tasks(tasks)
+
+    if args.streak is not None:
+        if args.streak.startswith(">"):
+            streaks = [
+                streak for streak in streaks if streak["streak"] > int(args.streak[1:])
+            ]
+        elif args.streak.startswith("<"):
+            streaks = [
+                streak for streak in streaks if streak["streak"] < int(args.streak[1:])
+            ]
+        else:
+            streaks = [
+                streak for streak in streaks if streak["streak"] == int(args.streak)
+            ]
+
+    return streaks
 
 
 def analytics(args):
@@ -211,7 +238,7 @@ def analytics(args):
         data = req_habits_list(
             SimpleNamespace(
                 port=args.port,
-                id=None,
+                id=args.habit_id,
                 name=None,
                 description=None,
                 interval=args.interval,
@@ -219,16 +246,15 @@ def analytics(args):
                 active=True,
             )
         )
-        print_tabular(data)
+        output(data, args.format)
 
     elif args.type == "list_longest_streaks":
         data = list_task_streaks(args)
-        print_tabular(data)
+        output(data, args.format)
 
     elif args.type == "get_longest_streak":
         data = list_task_streaks(args)
-        data.sort(key=lambda x: x["streak"], reverse=True)
-        print_tabular([data[0]])
+        output([data[0]], args.format)
 
     else:
         raise ValueError("Unknown analytics type")
@@ -238,6 +264,9 @@ def analytics(args):
 
 parser = argparse.ArgumentParser(description="Habit Tracker CLI")
 parser.add_argument("--port", type=int, help="Port of the server", default=5000)
+parser.add_argument(
+    "--format", choices=["table", "json"], help="Output format", default="table"
+)
 parser.set_defaults(func=lambda args: parser.print_help())
 
 
@@ -290,12 +319,14 @@ def assign_subparser_habits_create():
         help="The end of the habit to create, iso format, default 1 year from now",
         default=(datetime.now() + timedelta(days=365)).isoformat(),
     )
-    subparser.set_defaults(func=lambda args: print_tabular(req_habits_create(args)))
+    subparser.set_defaults(
+        func=lambda args: output([req_habits_create(args)], args.format)
+    )
 
 
 def assign_subparser_habits_list():
     """Assign subparser for habits:list."""
-    subparser = subparsers.add_parser("habits:list", help="List habits")
+    subparser = subparsers.add_parser("habits:list", help="List habits with filters")
     subparser.add_argument("--id", type=int, help="Filter by id")
     subparser.add_argument("--name", type=str, help="Filter by name")
     subparser.add_argument("--description", type=str, help="Filter by description")
@@ -312,17 +343,88 @@ def assign_subparser_habits_list():
         type=str,
         help="Filter by end date, can use < or > to filter, e.g. >2021-10-19T13:43:12",
     )
-    subparser.set_defaults(func=lambda args: print_tabular(req_habits_list(args)))
+    subparser.set_defaults(func=lambda args: output(req_habits_list(args), args.format))
+
+
+def assign_subparser_habits_update():
+    """Assign subparser for habits:update."""
+    subparser = subparsers.add_parser("habits:update", help="Update a habit")
+    subparser.add_argument(
+        "--id",
+        type=int,
+        help="The id of the habit to update",
+        required=True,
+    )
+    subparser.add_argument(
+        "--name",
+        type=str,
+        help="The name of the habit",
+    )
+    subparser.add_argument(
+        "--description",
+        type=str,
+        help="The description of the habit",
+    )
+    subparser.add_argument(
+        "--interval",
+        type=str,
+        help="The interval of the habit, must follow ISO8601 duration standard (P[n]Y[n]M[n]DT[n]H[n]M[n]S), e.g. P1Y",
+    )
+    subparser.add_argument(
+        "--lifetime",
+        type=str,
+        help="The lifetime of the habit, must follow ISO8601 duration standard (P[n]Y[n]M[n]DT[n]H[n]M[n]S), e.g. PT1H",
+    )
+    subparser.add_argument(
+        "--active",
+        type=bool,
+        help="The active of the habit, boolean, default false",
+    )
+    subparser.add_argument(
+        "--start",
+        type=str,
+        help="The start of the habit, iso format, default now",
+    )
+    subparser.add_argument(
+        "--end",
+        type=str,
+        help="The end of the habit, iso format, default 1 year from now",
+    )
+    subparser.set_defaults(
+        func=lambda args: output([req_habits_update(args)], args.format)
+    )
+
+
+def assign_subparser_habits_delete():
+    """Assign subparser for habits:delete."""
+    subparser = subparsers.add_parser("habits:delete", help="Delete a habit")
+    subparser.add_argument(
+        "--id",
+        type=int,
+        help="The id of the habit to delete",
+        required=True,
+    )
+    subparser.set_defaults(
+        func=lambda args: output([req_habits_delete(args)], args.format)
+    )
 
 
 def assign_subparser_tasks_list():
     """Assign subparser for tasks:list."""
-    subparser = subparsers.add_parser("tasks:list", help="List tasks")
+    subparser = subparsers.add_parser("tasks:list", help="List tasks with filters")
     subparser.add_argument("--habit_id", type=int, help="Filter by habit id")
     subparser.add_argument("--completed", type=bool, help="Filter by completed")
-    subparser.add_argument("--start", type=str, help="Filter by start date")
-    subparser.add_argument("--end", type=str, help="Filter by end date")
-    subparser.set_defaults(func=lambda args: print_tabular(req_tasks_list(args)))
+    subparser.add_argument(
+        "--start",
+        type=str,
+        help="Filter by start date, can use < or > to filter, e.g. >2021-10-19T13:43:12",
+    )
+    subparser.add_argument(
+        "--end",
+        type=str,
+        help="Filter by end date, can use < or > to filter, e.g. >2021-10-19T13:43:12",
+    )
+    subparser.set_defaults(func=lambda args: output(req_tasks_list(args), args.format))
 
 
 def assign_subparser_tasks_active():
@@ -330,14 +432,16 @@ def assign_subparser_tasks_active():
     subparser = subparsers.add_parser(
         "tasks:active", help="List tasks that are active and can be completed"
     )
-    subparser.set_defaults(func=lambda args: print_tabular(tasks_active(args)))
+    subparser.set_defaults(func=lambda args: output(tasks_active(args), args.format))
 
 
 def assign_subparser_tasks_complete():
     """Assign subparser for tasks:complete."""
     subparser = subparsers.add_parser("tasks:complete", help="Complete a task")
     subparser.add_argument("--id", type=int, help="The id of the task to complete")
-    subparser.set_defaults(func=lambda args: req_tasks_complete(tasks_active(args)))
+    subparser.set_defaults(
+        func=lambda args: output(req_tasks_complete(args), args.format)
+    )
 
 
 def assign_subparser_analytics():
@@ -364,19 +468,26 @@ def assign_subparser_analytics():
         "--interval", type=str, help="The interval to filter by, e.g. P1Y"
     )
     subparser.add_argument("--habit_id", type=int, help="The habit id to filter by")
+    subparser.add_argument(
+        "--streak",
+        type=str,
+        help="The amount of streaks to filter by, can use < or > to filter, e.g. >4",
+    )
     subparser.set_defaults(func=lambda args: analytics(args))
 
 
 assign_subparser_habits_create()
 assign_subparser_habits_list()
+assign_subparser_habits_update()
+assign_subparser_habits_delete()
 assign_subparser_tasks_list()
 assign_subparser_tasks_active()
 assign_subparser_tasks_complete()
 assign_subparser_analytics()
 
 # Parse arguments and call the function
+if __name__ == "__main__":
+    args = parser.parse_args()
 
-args = parser.parse_args()
-
-if hasattr(args, "func"):
-    args.func(args)
+    if hasattr(args, "func"):
+        args.func(args)
