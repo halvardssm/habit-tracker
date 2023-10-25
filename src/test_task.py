@@ -24,6 +24,7 @@ class TestTask(unittest.TestCase):
                 "start": "2023-10-19T13:43:12",
                 "end": "2023-10-20T13:43:12",
                 "completed": False,
+                "completed_at": None,
             },
         )
 
@@ -42,6 +43,7 @@ class TestTask(unittest.TestCase):
                 "start": "2023-10-19T13:43:12",
                 "end": "2023-10-20T13:43:12",
                 "completed": False,
+                "completed_at": None,
             },
         )
 

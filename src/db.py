@@ -27,6 +27,7 @@ db.execute(
     habit_id INTEGER NOT NULL,
     habit_order INTEGER NOT NULL,
     completed INTEGER NOT NULL,
+    completed_at TEXT,
     start TEXT NOT NULL,
     end TEXT NOT NULL,
     FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
@@ -228,8 +229,8 @@ def task_complete(task_id: int):
     """Marks a task as completed"""
 
     db.execute(
-        """UPDATE tasks SET completed = 1 WHERE id = ?""",
-        (task_id,),
+        """UPDATE tasks SET completed = 1, completed_at = ? WHERE id = ?""",
+        (datetime.now(), task_id),
     )
     con.commit()
 
@@ -257,8 +258,9 @@ def task_list(
             habit_id=task[1],
             habit_order=task[2],
             completed=bool(task[3]),
-            start=task[4],
-            end=task[5],
+            completed_at=task[4],
+            start=task[5],
+            end=task[6],
         )
         for task in tasks
     ]

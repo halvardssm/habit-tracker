@@ -10,6 +10,7 @@ class Task:
     start: datetime
     end: datetime
     completed: bool
+    completed_at: datetime | None
 
     def __init__(
         self,
@@ -18,6 +19,7 @@ class Task:
         start: datetime | str,
         end: datetime | str,
         completed: bool = False,
+        completed_at: datetime | None = None,
         id: int | None = None,
     ):
         """Initializes the class with validation"""
@@ -48,6 +50,15 @@ class Task:
             raise TypeError("completed must be a boolean")
         self.completed = completed
 
+        if isinstance(completed_at, datetime):
+            self.completed_at = completed_at
+        elif isinstance(completed_at, str):
+            self.completed_at = datetime.fromisoformat(completed_at)
+        elif completed_at is None:
+            self.completed_at = None
+        else:
+            raise TypeError("completed_at must be a datetime, string or None")
+
         if isinstance(id, int):
             self.id = id
         elif id is not None:
@@ -65,4 +76,7 @@ class Task:
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "completed": self.completed,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at is not None
+            else None,
         }
